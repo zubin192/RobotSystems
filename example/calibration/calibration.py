@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from picarx import picarx_improved
+from picarx import picarx
 from time import sleep
 import readchar 
 
