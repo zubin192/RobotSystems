@@ -156,36 +156,74 @@ class Picarx(object):
         self.set_motor_speed(1, speed)
         self.set_motor_speed(2, speed)
 
+    # def backward(self, speed):
+    #     current_angle = self.dir_current_angle
+    #     if current_angle != 0:
+    #         abs_current_angle = abs(current_angle)
+    #         if abs_current_angle > self.DIR_MAX:
+    #             abs_current_angle = self.DIR_MAX
+    #         #power_scale = (100 - abs_current_angle) / 100.0 
+    #         power_scale = math.sin(math.radians(abs_current_angle))  # use sinusoid function
+    #         left_speed = -speed * math.sin(math.radians(current_angle))
+    #         right_speed = -speed * math.sin(math.radians(-current_angle))
+    #         self.set_motor_speed(1, int(left_speed * power_scale))
+    #         self.set_motor_speed(2, int(right_speed * power_scale))
+    #     else:
+    #         self.set_motor_speed(1, -speed)
+    #         self.set_motor_speed(2, -speed)  
+
+    # def forward(self, speed):
+    #     current_angle = self.dir_current_angle
+    #     if current_angle != 0:
+    #         abs_current_angle = abs(current_angle)
+    #         if abs_current_angle > self.DIR_MAX:
+    #             abs_current_angle = self.DIR_MAX
+    #         #power_scale = (100 - abs_current_angle) / 100.0
+    #         power_scale = math.sin(math.radians(abs_current_angle))  # use sinusoid function
+    #         left_speed = speed * math.sin(math.radians(current_angle))
+    #         right_speed = speed * math.sin(math.radians(-current_angle))
+    #         self.set_motor_speed(1, int(left_speed * power_scale))
+    #         self.set_motor_speed(2, int(right_speed * power_scale))
+    #     else:
+    #         self.set_motor_speed(1, speed)
+    #         self.set_motor_speed(2, speed)  
+
+
+ 
     def backward(self, speed):
         current_angle = self.dir_current_angle
         if current_angle != 0:
             abs_current_angle = abs(current_angle)
             if abs_current_angle > self.DIR_MAX:
                 abs_current_angle = self.DIR_MAX
-            power_scale = (100 - abs_current_angle) / 100.0 
-            left_speed = -speed * math.sin(math.radians(current_angle))
-            right_speed = -speed * math.sin(math.radians(-current_angle))
-            self.set_motor_speed(1, int(left_speed * power_scale))
-            self.set_motor_speed(2, int(right_speed * power_scale))
+            power_scale = math.sin(math.radians(abs_current_angle))  # use sinusoid function
+            if (current_angle / abs_current_angle) > 0:
+                self.set_motor_speed(1, -1*speed)
+                self.set_motor_speed(2, speed * power_scale)
+            else:
+                self.set_motor_speed(1, -1*speed * power_scale)
+                self.set_motor_speed(2, speed )
         else:
-            self.set_motor_speed(1, -speed)
-            self.set_motor_speed(2, -speed)  
-
+            self.set_motor_speed(1, -1*speed)
+            self.set_motor_speed(2, speed)  
+    
     def forward(self, speed):
         current_angle = self.dir_current_angle
         if current_angle != 0:
             abs_current_angle = abs(current_angle)
             if abs_current_angle > self.DIR_MAX:
                 abs_current_angle = self.DIR_MAX
-            power_scale = (100 - abs_current_angle) / 100.0
-            left_speed = speed * math.sin(math.radians(current_angle))
-            right_speed = speed * math.sin(math.radians(-current_angle))
-            self.set_motor_speed(1, int(left_speed * power_scale))
-            self.set_motor_speed(2, int(right_speed * power_scale))
+            power_scale = math.sin(math.radians(abs_current_angle))  # use sinusoid function
+            if (current_angle / abs_current_angle) > 0:
+                self.set_motor_speed(1, 1*speed * power_scale)
+                self.set_motor_speed(2, -speed) 
+            else:
+                self.set_motor_speed(1, speed)
+                self.set_motor_speed(2, -1*speed * power_scale)
         else:
             self.set_motor_speed(1, speed)
-            self.set_motor_speed(2, speed)  
-
+            self.set_motor_speed(2, -1*speed)
+    
     def stop(self):
         for _ in range(2):
             self.motor_speed_pins[0].pulse_width_percent(0)
