@@ -5,7 +5,7 @@ try:
 except ImportError:
     from sim_robot_hat import ADC
 
-class Grayscale_Module(object):
+class Sensor(object):
 
     def __init__(self):
         self.chn_0 = ADC('A0')
@@ -20,8 +20,8 @@ class Grayscale_Module(object):
         return adc_value_list
 
 if __name__ == "__main__":
-    
-    grayscale_sensor = Grayscale_Module()
+
+    grayscale_sensor = Sensor()
 
     try:
         while True:
