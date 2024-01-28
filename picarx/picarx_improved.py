@@ -1,16 +1,16 @@
 import time
 import os
 import math
-
 try:
     from robot_hat import Pin, ADC, PWM, Servo, fileDB
-    from robot_hat import Grayscale_Module, Ultrasonic, utils
+    from robot_hat import Grayscale_Module, Ultrasonic
     from robot_hat.utils import reset_mcu, run_command
 except ImportError:
     from sim_robot_hat import Pin, ADC, PWM, Servo, fileDB
-    from sim_robot_hat import Grayscale_Module, Ultrasonic, utils
+    from sim_robot_hat import Grayscale_Module, Ultrasonic
     from sim_robot_hat import reset_mcu, run_command
-
+import logging
+import atexit
 reset_mcu()
 time.sleep(0.2)
 
@@ -45,7 +45,7 @@ class Picarx(object):
                 config:str=CONFIG,
                 ):
 
-        utils.reset_mcu()
+        reset_mcu()
         time.sleep(0.2)
 
         self.config_file = fileDB(config, 777, os.getlogin())
@@ -86,7 +86,7 @@ class Picarx(object):
         self.cliff_reference = self.config_file.get("cliff_reference", default_value=str(self.DEFAULT_CLIFF_REF))
         self.cliff_reference = [float(i) for i in self.cliff_reference.strip().strip('[]').split(',')]
 
-        self.grayscale.reference(self.line_reference)
+        #self.grayscale.reference(self.line_reference)
 
         tring, echo= ultrasonic_pins
         self.ultrasonic = Ultrasonic(Pin(tring), Pin(echo))
