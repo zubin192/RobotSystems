@@ -20,14 +20,13 @@ class Grayscale_Module(object):
         return adc_value_list
 
 if __name__ == "__main__":
-    # Create an instance of Grayscale_Module
+    
     grayscale_sensor = Grayscale_Module()
 
-    # Continuously print grayscale values
     try:
         while True:
             grayscale_values = grayscale_sensor.get_grayscale_data()
             print("Grayscale Values:", grayscale_values)
-            time.sleep(1)  # Adjust the sleep duration as needed
+            time.sleep(0.1)  
     except KeyboardInterrupt:
         print("Program terminated by user.")
