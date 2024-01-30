@@ -8,7 +8,7 @@ from picarx_improved import Picarx
 
 px = Picarx()
 
-px_power = 50
+px_power = 60
 last_state = "stop"
 
 class Grayscale_Module(object):
@@ -33,6 +33,7 @@ class Interp(object):
             return 'right'
         elif _state == [1, 0, 0]:
             return 'left'
+            
 
 class Controller(object):
     @staticmethod
@@ -40,7 +41,6 @@ class Controller(object):
         # Calculate the average grayscale value
         avg_value = sum(val_list) / len(val_list)
         
-        # Map the average grayscale value to the interval [-1, 1]
         position = (avg_value - 127.5) / 127.5
         
         return position
