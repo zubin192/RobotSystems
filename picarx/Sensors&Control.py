@@ -9,7 +9,6 @@ from picarx_improved import Picarx
 px = Picarx()
 
 px_power = 50
-offset = 30
 last_state = "stop"
 
 class Grayscale_Module(object):
@@ -36,25 +35,35 @@ class Interp(object):
             return 'left'
 
 class Controller(object):
-    global last_state
+    @staticmethod
+    def get_position(val_list):
+        # Calculate the average grayscale value
+        avg_value = sum(val_list) / len(val_list)
+        
+        # Map the average grayscale value to the interval [-1, 1]
+        position = (avg_value - 127.5) / 127.5
+        
+        return position
 
     @staticmethod
     def run_controller():
-        global last_state
-        if last_state == 'left':
-            px.set_dir_servo_angle(-offset)
-            px.forward(px_power)
-        elif last_state == 'right':
-            px.set_dir_servo_angle(offset)
-            px.forward(px_power)
-        
         while True:
             gm_val_list = px.get_grayscale_data()
             gm_state = Interp.get_status(gm_val_list)  # Use Interp class for status
             print("outHandle gm_val_list: %s, %s" % (gm_val_list, gm_state))
-            current_state = gm_state
-            if current_state != last_state:
-                break
+            
+            # Get the position based on the grayscale values
+            position = Controller.get_position(gm_val_list)
+            print("Position:", position)
+            
+            if gm_state != 'stop':
+                # Set the last state based on the position
+                last_state = position
+                
+                # Adjust the angle and direction based on the last state
+                px.set_dir_servo_angle(last_state * 45)
+                px.forward(px_power)
+            
             sleep(0.001)
 
 if __name__ == "__main__":
@@ -64,7 +73,7 @@ if __name__ == "__main__":
     # Create an instance of Interp
     interp = Interp()
 
-    # Continuously print grayscale values and status
+    # Continuously print grayscale values, status, and position
     try:
         while True:
             grayscale_values = grayscale_sensor.get_grayscale_data()
@@ -73,16 +82,17 @@ if __name__ == "__main__":
             print("Status:", status)
 
             if status != "stop":
-                last_state = status
+                # Set the last state based on the position
+                last_state = Controller.get_position(grayscale_values)
 
             if status == 'forward':
                 px.set_dir_servo_angle(0)
                 px.forward(px_power) 
             elif status == 'left':
-                px.set_dir_servo_angle(-offset)
+                px.set_dir_servo_angle(last_state * -45)  # Adjust the angle and direction based on the last state
                 px.forward(px_power) 
             elif status == 'right':
-                px.set_dir_servo_angle(offset)
+                px.set_dir_servo_angle(last_state * 45)  # Adjust the angle and direction based on the last state
                 px.forward(px_power) 
 
             time.sleep(0.001)  # Adjust the sleep duration as needed
