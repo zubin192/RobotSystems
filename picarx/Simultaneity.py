@@ -8,7 +8,9 @@ except ImportError:
 from picarx_improved import Picarx
 from readerwriterlock import rwlock
 
-
+import concurrent.futures
+from readerwriterlock import rwlock
+import time
 
 class MessageBus(object):
     def __init__(self):
@@ -26,54 +28,50 @@ class MessageBus(object):
 class Grayscale_Module(object):
     def __init__(self, sensor_bus):
         self.sensor_bus = sensor_bus
-        # other initialization
 
     def get_grayscale_data(self):
-        # retrieve grayscale data
-        grayscale_data = [1, 2, 3]  # replace with actual data
-        self.sensor_bus.write(grayscale_data)
+        adc_value_list = [1, 2, 3]  # replace with actual data
+        self.sensor_bus.write(adc_value_list)
 
 class Interp(object):
     @staticmethod
     def get_status(val_list):
-        # Your existing implementation
+        if val_list == [0, 0, 0]:
+            return 'stop'
+        elif val_list == [0, 1, 0]:
+            return 'forward'
+        elif val_list == [0, 0, 1]:
+            return 'right'
+        elif val_list == [1, 0, 0]:
+            return 'left'
 
 class Controller(object):
     @staticmethod
     def get_position(val_list):
-        # Your existing implementation
+        avg_value = sum(val_list) / len(val_list)
+        position = (avg_value - 127.5) / 127.5
+        return position
 
     @staticmethod
     def run_controller(interpreter_bus, control_bus):
+        last_state = "stop"
+        px_power = 60
+        px = Picarx()  # Assuming you have a Picarx class
+
         while True:
-            # Read data from the buses
             gm_val_list = interpreter_bus.read()
+            gm_state = Interp.get_status(gm_val_list)
 
-            # Your existing code for interpretation
+            position = Controller.get_position(gm_val_list)
 
-            # Write control information to the control bus
-            control_bus.write(control_data)
+            if gm_state != 'stop':
+                last_state = position
+
+                # Adjust the angle and direction based on the last state
+                px.set_dir_servo_angle(last_state * 45)
+                px.forward(px_power)
 
             time.sleep(0.001)
-
-def sensor_function(sensor_bus, sensor_delay):
-    grayscale_sensor = Grayscale_Module(sensor_bus)
-    while True:
-        grayscale_sensor.get_grayscale_data()
-        time.sleep(sensor_delay)
-
-def interpreter_function(sensor_bus, interpreter_bus, interpreter_delay):
-    while True:
-        grayscale_data = sensor_bus.read()
-        status = Interp.get_status(grayscale_data)
-        interpreter_bus.write(status)
-        time.sleep(interpreter_delay)
-
-def control_function(interpreter_bus, control_bus, control_delay):
-    while True:
-        status = interpreter_bus.read()
-        # Your existing code for control
-        time.sleep(control_delay)
 
 if __name__ == "__main__":
     # Create instances of MessageBus
@@ -83,9 +81,9 @@ if __name__ == "__main__":
 
     # Create ThreadPoolExecutor for concurrent execution
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        eSensor = executor.submit(sensor_function, sensor_bus, sensor_delay=0.001)
-        eInterpreter = executor.submit(interpreter_function, sensor_bus, interpreter_bus, interpreter_delay=0.001)
-        eController = executor.submit(control_function, interpreter_bus, control_bus, control_delay=0.001)
+        eSensor = executor.submit(Grayscale_Module, sensor_bus, sensor_delay=0.001)
+        eInterpreter = executor.submit(Interp, sensor_bus, interpreter_bus, interpreter_delay=0.001)
+        eController = executor.submit(Controller, interpreter_bus, control_bus, control_delay=0.001)
 
         try:
             # Your existing code for setting up Picarx
@@ -95,3 +93,4 @@ if __name__ == "__main__":
             print("Program terminated by user.")
         finally:
             # Your existing cleanup code
+            pass  # Add cleanup code if needed
