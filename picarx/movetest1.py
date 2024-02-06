@@ -55,6 +55,7 @@ if __name__ == "__main__":
             px.forward(50)
             px.set_dir_servo_angle(0)
             time.sleep(1)
+            time.sleep(1)
             px.stop()
 
         elif direction == 'KT':

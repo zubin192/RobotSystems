@@ -8,7 +8,7 @@ from picarx_improved import Picarx
 
 px = Picarx()
 
-px_power = 60
+px_power = 0
 last_state = "stop"
 
 class Grayscale_Module(object):
