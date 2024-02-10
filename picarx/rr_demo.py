@@ -32,6 +32,8 @@ import math
 FORWARD_ANGLE = 0
 LEFT_ANGLE = -45
 RIGHT_ANGLE = 45
+POWER = 0
+stop_distance = 20
 
 # logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger().setLevel(logging.INFO)
@@ -51,23 +53,22 @@ class Grayscale_Module:
     
 class Ultrasonic_Module:
 
-    def __init__(self, px):
-        self.chn_3 = ADC('D2')
-        self.chn_4 = ADC('D3')
+    def main():
+        try:
+            px = Picarx()
+            # px = Picarx(ultrasonic_pins=['D2','D3']) # tring, echo
+        
+            while True:
+                distance = round(px.ultrasonic.read(), 2)
+                print("distance: ", distance)
+                if distance > stop_distance:
+                    px.forward(POWER)
+                else:
+                    px.forward(0)  # Stop the car
 
-    def get_ultrasonic_data(self):
-        adc_value_list = [self.chn_3.read(), self.chn_4.read()]
-        return adc_value_list
-    def get_distance(self):
-        adc_value_list = self.get_ultrasonic_data()
-        distance = (adc_value_list[0] + adc_value_list[1]) / 2
-        return distance
-    def stop_distance(self):
-        distance = self.get_distance()
-        if distance < 10:
-            return True
-        else:
-            return False
+        finally:
+            px.forward(0)
+
         
 class Interp:
     def __init__(self, px):
