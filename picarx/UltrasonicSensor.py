@@ -18,30 +18,30 @@ Fifth and finally, it makes a list of all of the RossROS objects and sends them 
 for simultaneous execution
 
 """
+
+import rossros as rr
+import logging
+import time
+import math
+import time
 from time import sleep
 try:
     from robot_hat import ADC
 except ImportError:
     from sim_robot_hat import ADC
 from picarx_improved import Picarx
-import rossros as rr
-import logging
-import time
-import math
-
-FORWARD_ANGLE = 0
-LEFT_ANGLE = -45
-RIGHT_ANGLE = 45
-POWER = 0
-stop_distance = 20
+import concurrent.futures
 
 # logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger().setLevel(logging.INFO)
 
+FORWARD_ANGLE = 0
+LEFT_ANGLE = -45
+RIGHT_ANGLE = 45
 
 """ First Part: Signal generation and processing functions """
 
-class Grayscale_Module:
+class Sensing:
     def __init__(self):
         self.chn_0 = ADC('A0')
         self.chn_1 = ADC('A1')
@@ -51,25 +51,40 @@ class Grayscale_Module:
         adc_value_list = [self.chn_0.read(), self.chn_1.read(), self.chn_2.read()]
         return adc_value_list
     
-class Ultrasonic_Module:
+    def __init__(self, trig, echo, timeout=0.02):
+        self.trig = trig
+        self.echo = echo
+        self.timeout = timeout
 
-    def main():
-        try:
-            px = Picarx()
-            # px = Picarx(ultrasonic_pins=['D2','D3']) # tring, echo
+    def ultrasonic_sense(self):
+        self.trig.low()
+        time.sleep(0.01)
+        self.trig.high()
+        time.sleep(0.00001)
+        self.trig.low()
+        pulse_end = 0
+        pulse_start = 0
+        timeout_start = time.time()
+        while self.echo.value() == 0:
+            pulse_start = time.time()
+            if pulse_start - timeout_start > self.timeout:
+                return -1
+        while self.echo.value() == 1:
+            pulse_end = time.time()
+            if pulse_end - timeout_start > self.timeout:
+                return -1
+        during = pulse_end - pulse_start
+        cm = round(during * 340 / 2 * 100, 2)
+        return cm
+
+    def read(self, times=10):
+        for i in range(times):
+            a = self.ultrasonic_sense()
+            if a != -1:
+                return a
+        return -1
         
-            while True:
-                distance = round(px.ultrasonic.read(), 2)
-                print("distance: ", distance)
-                if distance > stop_distance:
-                    px.forward(POWER)
-                else:
-                    px.forward(0)  # Stop the car
 
-        finally:
-            px.forward(0)
-
-        
 class Interp:
     def __init__(self, px):
         self.px = px
@@ -85,10 +100,14 @@ class Interp:
         elif _state == [1, 0, 0]:
             return 'left'
         
+    def ultrasonicstatus(self, distance, min_distance=10):
+        if distance != -1 and distance < min_distance:
+            return True
+        return False
     
-                
+        
 class Controller:
-    def __init__(self, px, power):
+    def __init__(self, px, power, sensing):
         self.px = px
         self.power = power
         self.last_state = "stop"
@@ -117,42 +136,41 @@ class Controller:
 
         sleep(0.001)
 
-  
+    def stop_if_obstacle(self, min_distance=10):
+        distance = self.sensing.read()
+        if distance != -1 and distance < min_distance:
+            self.px.stop()
+            return True
+        return False
+
+    def run_controller(self, grayscale_values, status):
+        print("Grayscale Values:", grayscale_values)
+        print("Status:", status)
+
+        if self.stop_if_obstacle():
+            print("Obstacle detected, stopping.")
+            return
+
+
 
 """ Second Part: Create buses for passing data """
 
+Sensing_stuff = Sensing()
+Interp_stuff = Interp()
+Controller_stuff = Controller()
+
 # Initiate data and termination busses
-bSquare = rr.Bus(square(), "Square wave bus")
-bSawtooth = rr.Bus(sawtooth(), "Sawtooth wave Bus")
-bMultiplied = rr.Bus(sawtooth() * square(), "Multiplied wave bus")
+bSensing = rr.Bus(Sensing_stuff, "Sensing Stuff")
+bInterp = rr.Bus(Interp_stuff, "Interp Stuff")
+bController = rr.Bus(Controller_stuff, "Controller Stuff")
 bTerminate = rr.Bus(0, "Termination Bus")
 
 """ Third Part: Wrap signal generation and processing functions into RossROS objects """
 
-# Wrap the square wave signal generator into a producer
-readSquare = rr.Producer(
-    square,  # function that will generate data
-    bSquare,  # output data bus
-    0.05,  # delay between data generation cycles
-    bTerminate,  # bus to watch for termination signal
-    "Read square wave signal")
-
-# Wrap the sawtooth wave signal generator into a producer
-readSawtooth = rr.Producer(
-    sawtooth,  # function that will generate data
-    bSawtooth,  # output data bus
-    0.05,  # delay between data generation cycles
-    bTerminate,  # bus to watch for termination signal
-    "Read sawtooth wave signal")
-
-# Wrap the multiplier function into a consumer-producer
-multiplyWaves = rr.ConsumerProducer(
-    mult,  # function that will process data
-    (bSquare, bSawtooth),  # input data buses
-    bMultiplied,  # output data bus
-    0.05,  # delay between data control cycles
-    bTerminate,  # bus to watch for termination signal
-    "Multiply Waves")
+# Wrap signal generation and processing functions into RossROS objects
+readGrayscale = rr.Producer(Sensing_stuff.get_grayscale_data, bSensing, "Read Grayscale")
+getInterpStatus = rr.Producer(Interp_stuff.get_status, bSensing, bInterp, "Get Interp Status")
+runController = rr.ConsumerProducer(Controller_stuff.run_controller, bSensing, bInterp, bController, "Run Controller")
 
 """ Fourth Part: Create RossROS Printer and Timer objects """
 
