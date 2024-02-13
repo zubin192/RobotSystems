@@ -176,15 +176,11 @@ runController = rr.ConsumerProducer(Controller_stuff.run_controller, bSensing, b
 
 # Make a printer that returns the most recent wave and product values
 printBuses = rr.Printer(
-    (bSquare, bSawtooth, bMultiplied, bTerminate),  # input data buses
-    # bMultiplied,      # input data buses
-    0.25,  # delay between printing cycles
-    bTerminate,  # bus to watch for termination signal
-    "Print raw and derived data",  # Name of printer
-    "Data bus readings are: ")  # Prefix for output
+    [bSensing, bInterp, bController],  # Buses to print
+    0.5,  # Period
+    "Print Buses")  # Name of this printer
 
-# Make a timer (a special kind of producer) that turns on the termination
-# bus when it triggers
+# Make a timer that turns on the termination bus when it triggers
 terminationTimer = rr.Timer(
     bTerminate,  # Output data bus
     3,  # Duration
