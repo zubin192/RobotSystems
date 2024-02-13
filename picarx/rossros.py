@@ -107,6 +107,7 @@ class ConsumerProducer:
 
             # Pause for set amount of time
             time.sleep(self.delay)
+          
 
     # Take in a bus or a tuple of buses, and store their
     # messages into a list
@@ -203,7 +204,7 @@ class Producer(ConsumerProducer):
             delay,
             termination_buses,
             name)
-
+       
 
 class Consumer(ConsumerProducer):
     """
